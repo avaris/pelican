@@ -74,13 +74,34 @@ jobs:
           echo "=====  PANDOC  ====="
           pandoc --version | head -2
       - name: Run tests
-        run: tox -e py${{ matrix.config.python }} | tee test_report.md
-      - name: Test report
-        if: ${{ matrix.config.os=='ubuntu' && matrix.config.python=='3.7' }}
-        run: |
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cat test_report.md >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        run: tox -e py${{ matrix.config.python }}
+
+
+  step-test:
+    name: Step Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Failure
+        id: failure
+        run: exit 1
+        continue-on-error: true
+      - name: Success
+        id: success
+        run: exit 0
+        continue-on-error: true
+      - name: Check failure
+        if: steps.failure.outcome=='failure'
+        run: echo "failure failed"
+      - name: Check success
+        if: steps.success.outcome=='success'
+        run: echo "success succeeded"
+      - name: Should not run because of failure
+        if: steps.failure.outcome=='success'
+        run: echo "should not run"
+      - name: Should not run because of success
+        if: steps.success.outcome=='failure'
+        run: echo "should not run"
 
 
   lint:
@@ -150,9 +171,10 @@ jobs:
           pip install poetry
           pip install githubrelease
           pip install --pre autopub
-          echo "release=$(autopub check)" >> $GITHUB_OUTPUT
+          autopub check
+        continue-on-error: true
       - name: Publish
-        if: ${{ steps.check_release.outputs.release=='' }}
+        if: ${{ steps.check_release.outcome=='success' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
