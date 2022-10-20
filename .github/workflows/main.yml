@@ -74,7 +74,13 @@ jobs:
           echo "=====  PANDOC  ====="
           pandoc --version | head -2
       - name: Run tests
-        run: tox -e py${{ matrix.config.python }}
+        run: tox -e py${{ matrix.config.python }} | tee test_report.md
+      - name: Test report
+        if: ${{ matrix.config.os=='ubuntu' && matrix.config.python=='3.7' }}
+        run: |
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat test_report.md >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
 
   lint:
